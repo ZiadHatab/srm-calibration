@@ -1,10 +1,10 @@
 # Symmetric-Reciprocal-Match (SRM) Calibration
 
-A self-calibration procedure for vector network analyzers (VNAs) called Symmetric-Reciprocal-Match (SRM) method that uses partial defined standards.
+A self-calibration procedure for vector network analyzers (VNAs) that uses partial defined standards.
 
 ## TO-DO
 
-- Include a non-linear optimization procedure to automatically estimate parasitic elements of match standards, given only the DC resistance of the match.
+- Include a nonlinear optimization procedure to automatically estimate parasitic elements of the match standard, given only its DC resistance.
 
 ## **Basic principle**
 
@@ -70,7 +70,8 @@ cal = SRM(symmetric=[open_meas, short_meas, match_meas],
           reciprocal=reciprocal_meas,
           est_reciprocal=reciprocal_est,
           reciprocal_GammaA=[recip_open_A_meas, recip_short_A_meas, recip_match_A_meas], 
-          matchA=match_meas.s11, matchB=match_meas.s22 # ref impedance is now defined to the match standard
+          matchA=match_meas.s11, matchB=match_meas.s22, # ref impedance is now defined to the match standard
+          # use_half_network=True  # if network-loads use half-network approach
           )
 cal.run()
 
@@ -103,7 +104,7 @@ _Illustration of CPW structures implementing the half-network approach of SRM ca
 The simulation outcome is not surprising: it yields exact results, as indicated by the error vector graph of the calibrated DUT (step-impedance), which approaches zero and is limited only by numerical precision of the software.
 
 ![](./Images/cpw_error.png)
-_Error vector comparing full- an half-network approaches of SRM calibration_
+_Error vector comparing full- and half-network approaches of SRM calibration_
 
 ## Crediting
 
@@ -111,9 +112,9 @@ If you found yourself using the method presented here in a publication, please c
 
 ## References
 
-[1] Z. Hatab, M. E. Gadringer, and W. Bösch, "Symmetric-Reciprocal-Match Method for Vector Network Analyzer Calibration" 2023, e-print: *to be updated on 7th of September 2023*.
+[1] Z. Hatab, M. E. Gadringer, and W. Bösch, "Symmetric-Reciprocal-Match Method for Vector Network Analyzer Calibration" 2023, e-print: <https://arxiv.org/abs/2309.02886>
 
-[2] Z. Hatab, "Symmetric-Reciprocal-Match Calibration: Dataset and Code". Graz University of Technology. doi: *to be updated on 7th of September 2023*.
+[2] Z. Hatab, "Symmetric-Reciprocal-Match Calibration: Dataset and Code". Graz University of Technology, Sep. 07, 2023. doi: [10.3217/z5zhh-5qh04](https://doi.org/10.3217/z5zhh-5qh04).
 
 ## License
 
