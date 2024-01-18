@@ -112,7 +112,7 @@ If you found yourself using the method presented here in a publication, please c
 
 ## References
 
-[1] Z. Hatab, M. E. Gadringer, and W. Bösch, "Symmetric-Reciprocal-Match Method for Vector Network Analyzer Calibration" 2023, e-print: <https://arxiv.org/abs/2309.02886>
+[1] Z. Hatab, M. E. Gadringer and W. Bösch, "Symmetric-Reciprocal-Match Method for Vector Network Analyzer Calibration," in _IEEE Transactions on Instrumentation and Measurement_, vol. 73, pp. 1-11, 2024, Art no. 1001911, doi: [10.1109/TIM.2024.3350124](https://doi.org/10.1109/TIM.2024.3350124), e-print: <https://arxiv.org/abs/2309.02886>
 
 [2] Z. Hatab, "Symmetric-Reciprocal-Match Calibration: Dataset and Code". Graz University of Technology, Sep. 07, 2023. doi: [10.3217/z5zhh-5qh04](https://doi.org/10.3217/z5zhh-5qh04).
 
