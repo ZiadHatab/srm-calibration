@@ -218,32 +218,48 @@ if __name__=='__main__':
     
     DUT_embbed = embbed_error(cal.k, cal.X, DUT)
     
-    RECI_full_SHORT_p1 = embbed_error(cal.k, cal.X, line_cpw_full**short_cpw).s11
-    RECI_full_OPEN_p1  = embbed_error(cal.k, cal.X, line_cpw_full**open_cpw).s11
-    RECI_full_MATCH_p1 = embbed_error(cal.k, cal.X, line_cpw_full**match_cpw).s11
+    RECI_full_SHORT = embbed_error(cal.k, cal.X, line_cpw_full**short_cpw**line_cpw_full)
+    RECI_full_OPEN  = embbed_error(cal.k, cal.X, line_cpw_full**open_cpw**line_cpw_full)
+    RECI_full_MATCH = embbed_error(cal.k, cal.X, line_cpw_full**match_cpw**line_cpw_full)
     
-    RECI_half_SHORT_p1 = embbed_error(cal.k, cal.X, line_cpw_half**short_cpw).s11
-    RECI_half_OPEN_p1  = embbed_error(cal.k, cal.X, line_cpw_half**open_cpw).s11
-    RECI_half_MATCH_p1 = embbed_error(cal.k, cal.X, line_cpw_half**match_cpw).s11
-        
+    RECI_half_SHORT = embbed_error(cal.k, cal.X, line_cpw_half**short_cpw**line_cpw_half)
+    RECI_half_OPEN  = embbed_error(cal.k, cal.X, line_cpw_half**open_cpw**line_cpw_half)
+    RECI_half_MATCH = embbed_error(cal.k, cal.X, line_cpw_half**match_cpw**line_cpw_half)
+    
+    RECI_full_SHORT_p1 = RECI_full_SHORT.s11
+    RECI_full_SHORT_p2 = RECI_full_SHORT.s22
+    RECI_full_OPEN_p1  = RECI_full_OPEN.s11
+    RECI_full_OPEN_p2  = RECI_full_OPEN.s22
+    RECI_full_MATCH_p1 = RECI_full_MATCH.s11
+    RECI_full_MATCH_p2 = RECI_full_MATCH.s22
+
+    RECI_half_SHORT_p1 = RECI_half_SHORT.s11
+    RECI_half_SHORT_p2 = RECI_half_SHORT.s22
+    RECI_half_OPEN_p1  = RECI_half_OPEN.s11
+    RECI_half_OPEN_p2  = RECI_half_OPEN.s22
+    RECI_half_MATCH_p1 = RECI_half_MATCH.s11
+    RECI_half_MATCH_p2 = RECI_half_MATCH.s22
+
     # SRM calibration
-    # full network
+    # full network (at least 3 standards)
     cal = SRM(symmetric=[SHORT, OPEN, MATCH], 
               est_symmetric=[short_cpw, open_cpw, match_cpw], 
               reciprocal=RECIPROCAL,
               est_reciprocal=line_cpw_full,
               reciprocal_GammaA=[RECI_full_SHORT_p1, RECI_full_OPEN_p1, RECI_full_MATCH_p1],
+              #reciprocal_GammaB=[RECI_full_SHORT_p2, RECI_full_OPEN_p2, RECI_full_MATCH_p2],
               matchA=MATCH.s11, matchB=MATCH.s22, matchA_def=match_cpw.s11, matchB_def=match_cpw.s22,
               use_half_network=False
               )
     cal.run()
     
-    # half network
+    # half network (at least 3 standards)
     cal_half = SRM(symmetric=[SHORT, OPEN, MATCH], 
               est_symmetric=[short_cpw, open_cpw, match_cpw], 
               reciprocal=RECIPROCAL,
               est_reciprocal=line_cpw_full,
               reciprocal_GammaA=[RECI_half_SHORT_p1, RECI_half_OPEN_p1, RECI_half_MATCH_p1],
+              #reciprocal_GammaB=[RECI_half_SHORT_p2, RECI_half_OPEN_p2, RECI_half_MATCH_p2],
               matchA=MATCH.s11, matchB=MATCH.s22, matchA_def=match_cpw.s11, matchB_def=match_cpw.s22,
               use_half_network=True
               )
@@ -251,106 +267,39 @@ if __name__=='__main__':
     
     DUT_calibrated = cal.apply_cal(DUT_embbed)
     DUT_calibrated_half = cal_half.apply_cal(DUT_embbed)
-    with PlotSettings(14):
-        fig, axs = plt.subplots(2,2, figsize=(10,6))        
-        fig.set_dpi(600)
-        fig.tight_layout(w_pad=2.5, h_pad=2.5)
-        ax = axs[0,0]
-        val = mag2db(DUT.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=20, markersize=12,
-                label='DUT', linestyle='-')
-        val = mag2db(DUT_embbed.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=20, markersize=12,
-                label='Embedded DUT', linestyle='-')
-        ax.set_xlabel('Frequency (GHz)')
-        ax.set_xticks(np.arange(0,150.1,30))
-        ax.set_xlim(0,150)
-        ax.set_ylabel('|S11| (dB)')
-        ax.set_yticks(np.arange(-60,0.1,20))
-        ax.set_ylim(-60,0)
-        ax.legend(loc='lower right', ncol=1, fontsize=11)
-        
-        ax = axs[0,1]
-        val = mag2db(DUT.s[:,1,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=20, markersize=12,
-                label='DUT', linestyle='-')
-        val = mag2db(DUT_embbed.s[:,1,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=20, markersize=12,
-                label='Embedded DUT', linestyle='-')
-        ax.set_xlabel('Frequency (GHz)')
-        ax.set_xticks(np.arange(0,150.1,30))
-        ax.set_xlim(0,150)
-        ax.set_ylabel('|S21| (dB)')
-        ax.set_yticks(np.arange(-40,0.1,10))
-        ax.set_ylim(-40,0)
-        
-        ax = axs[1,0]
-        val = np.angle(DUT.s[:,0,0])/np.pi
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=20, markersize=12,
-                label='DUT', linestyle='-')
-        val = np.angle(DUT_embbed.s[:,0,0])/np.pi
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=20, markersize=12,
-                label='Embedded DUT', linestyle='-')
-        ax.set_xlabel('Frequency (GHz)')
-        ax.set_xticks(np.arange(0,150.1,30))
-        ax.set_xlim(0,150)
-        ax.set_ylabel(r'arg(S11) ($\times \pi$ rad)')
-        ax.set_yticks(np.arange(-1,1.1,0.4))
-        ax.set_ylim(-1,1)
-        
-        ax = axs[1,1]
-        val = np.angle(DUT.s[:,1,0])/np.pi
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=20, markersize=12,
-                label='DUT', linestyle='-')
-        val = np.angle(DUT_embbed.s[:,1,0])/np.pi
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=20, markersize=12,
-                label='Embedded DUT', linestyle='-')
-        ax.set_xlabel('Frequency (GHz)')
-        ax.set_xticks(np.arange(0,150.1,30))
-        ax.set_xlim(0,150)
-        ax.set_ylabel(r'arg(S21) ($\times \pi$ rad)')
-        ax.set_yticks(np.arange(-1,1.1,0.4))
-        ax.set_ylim(-1,1)
-                
-        #fig.savefig('numerical_simulation_DUT.pdf', format='pdf', dpi=300, 
-        #        bbox_inches='tight', pad_inches = 0)
     
-        with PlotSettings(14):
-            fig, axs = plt.subplots(1,2, figsize=(10,3))        
-            fig.set_dpi(600)
-            fig.tight_layout(w_pad=3, h_pad=2.5)
-            
-            ax = axs[0]
-            err = mag2db((DUT.s- DUT_calibrated.s))[:,0,0] 
-            ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=20, markersize=12,
-                    label='SRM (full network)')
-            err = mag2db((DUT.s- DUT_calibrated_half.s)/DUT.s)[:,0,0] 
-            ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=20, markersize=12,
-                    label='SRM (half network)')
-            ax.set_xlabel('Frequency (GHz)')
-            ax.set_xticks(np.arange(0,150.1,30))
-            ax.set_xlim(0,150)
-            ax.set_ylabel('S11 error (dB)')
-            ax.set_yticks(np.arange(-350,-249,20))
-            ax.set_ylim(-350,-250)
-            ax.legend(loc='lower right', ncol=1, fontsize=12)
-            
-            ax = axs[1]
-            err = mag2db((DUT.s- DUT_calibrated.s))[:,1,0] 
-            ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=20, markersize=12,
-                    label='SRM (full network)')
-            err = mag2db((DUT.s- DUT_calibrated_half.s)/DUT.s)[:,1,0] 
-            ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=20, markersize=12,
-                    label='SRM (half network)')
-            ax.set_xlabel('Frequency (GHz)')
-            ax.set_xticks(np.arange(0,150.1,30))
-            ax.set_xlim(0,150)
-            ax.set_ylabel('S21 error (dB)')
-            ax.set_yticks(np.arange(-350,-249,20))
-            ax.set_ylim(-350,-250)
+    err = abs(DUT.s - DUT_calibrated.s)
+    err_half = abs(DUT.s - DUT_calibrated_half.s)
+    
+    with PlotSettings(14):
+        fig, axs = plt.subplots(1,2, figsize=(10,3))        
+        fig.set_dpi(600)
+        fig.tight_layout(w_pad=3, h_pad=2.5)
+
+        ax = axs[0]
+        ax.plot(f*1e-9, mag2db(err[:,0,0]), lw=2.5, marker='o', markevery=20, markersize=12, label='Full Network')
+        ax.plot(f*1e-9, mag2db(err_half[:,0,0]), lw=2.5, marker='X', markevery=20, markersize=12, label='Half Network') 
+        ax.set_xlabel('Frequency (GHz)')
+        ax.set_xticks(np.arange(0, 150.1, 30))
+        ax.set_xlim(0, 150)
+        ax.set_ylabel('S11 error (dB)')
+        ax.set_yticks(np.arange(-350,-249,20))
+        ax.set_ylim(-350,-250)
+        ax.legend(loc='lower right', ncol=1, fontsize=12)
         
-            #fig.savefig('error_numerical_simulation_DUT.pdf', format='pdf', dpi=300, 
-            #        bbox_inches='tight', pad_inches = 0)
+        ax = axs[1]
+        ax.plot(f*1e-9, mag2db(err[:,1,0]), lw=2.5, marker='o', markevery=20, markersize=12, label='Full Network')
+        ax.plot(f*1e-9, mag2db(err_half[:,1,0]), lw=2.5, marker='X', markevery=20, markersize=12, label='Half Network')
+        ax.set_xlabel('Frequency (GHz)')
+        ax.set_xticks(np.arange(0,150.1,30))
+        ax.set_xlim(0,150)
+        ax.set_ylabel('S21 error (dB)')
+        ax.set_yticks(np.arange(-350,-249,20))
+        ax.set_ylim(-350,-250)
+        ax.legend(loc='lower right', ncol=1, fontsize=12)
+    
+        #fig.savefig('error_numerical_simulation_DUT.pdf', format='pdf', dpi=300, 
+        #        bbox_inches='tight', pad_inches = 0)
                     
         
     plt.show()

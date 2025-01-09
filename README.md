@@ -2,18 +2,16 @@
 
 A self-calibration procedure for vector network analyzers (VNAs) that uses partial defined standards.
 
-## TO-DO
-
-- Include a nonlinear optimization procedure to automatically estimate parasitic elements of the match standard, given only its DC resistance.
-
 ## **Basic principle**
 
-SRM calibration involves measuring multiple partially defined standards. The measurements include:
+SRM calibration involves measuring multiple partially defined standards. The measurements includes:
 
 - At least 3 unique one-port measurements, such as short, open, and match.
 - A two-port reciprocal device.
 - One-port measurement using the two-port device and the one-port standards.
-- A match standard at each port to set the reference impedance.
+- A match standard at each port to set the reference impedance (can be non-linearly fit if model provided).
+
+You can reduced the symmetric one-port standards to at least 2, if the two-port device is symmetric (this is off by default and is not stable).
 
 During calibration, all standards are not specified except for the match standard. However, an estimate of the standards should be provided to resolve order/sign ambiguity during the calculations. The picture below provides a diagrammatic description of the standards. See [1] for details on an alternative implementation of the network-load standard using half of the network (also see CPW example below).
 
@@ -22,13 +20,13 @@ _SRM standards. Match is not shown, but could be part of the symmetric one-port 
 
 ## Code requirements
 
-For the script [`srm.py`][srm] You only need [`numpy`](https://github.com/numpy/numpy) and [`scikit-rf`](https://github.com/scikit-rf/scikit-rf) installed in your Python environment. To install these packages, run the following command:
+For the script [`srm.py`][srm] You only need [`numpy`](https://github.com/numpy/numpy), [`scikit-rf`](https://github.com/scikit-rf/scikit-rf) and [`scipy`](https://github.com/scipy/scipy) installed in your Python environment. To install these packages, run the following command:
 
-```python
-python -m pip install numpy scikit-rf -U
+```bash
+python -m pip install numpy scikit-rf scipy -U
 ```
 
-Regarding the dependencies for the example files, simply refer to the header of the files.
+Regarding the dependencies for the example files, simply refer to the header of each file.
 
 ## Sample code
 
@@ -83,13 +81,13 @@ dut_cal = cal.apply_cal(dut_meas)      # apply calibration
 
 ### Coaxial measurements
 
-This example simply uses coaxial standards. However, it is important to be careful with the adapter. The adapter used for the two-port measurement (middle picture below) should be of the same length as the adapter used to create the network load (last picture on the right). Also, don't ask about the resistors holding the cables. Let's just say I had to do what was necessary to fix the cables in place 😅
+This example uses standard coaxial components. It is crucial to ensure that the adapter used in the two-port measurement (middle picture below) matches the length of the adapter used to create the network-load (rightmost picture).
 
 ![](./Images/load.png) | ![](./Images/adapter.png) | ![](./Images/adapter_load.png)
 :-: | :-: | :-:
 _Symmetric load_ | _Reciprocal network_ | _Network-load_
 
-Below are the results of measuring verification kits. The cause of the ripple in the offset short is discussed in [1]. As for the SOLR, the SOL cal standards have already been characterized by the manufacturer (also, the calibration kit was brand new).
+Below are the results of measuring a verification kit. The ripples observed in the offset short measurements are discussed in detail in [1]. For the SOLR calibration, the SOL standards were pre-characterized by the manufacturer.
 
 ![](./Images/srm_solr_comparison.png)
 _Comparison between calibrated verification kit using SRM and SOLR_
@@ -103,12 +101,12 @@ _Illustration of CPW structures implementing the half-network approach of SRM ca
 
 The simulation outcome is not surprising: it yields exact results, as indicated by the error vector graph of the calibrated DUT (step-impedance), which approaches zero and is limited only by numerical precision of the software.
 
-![](./Images/cpw_error.png)
+![](./Images/cpw_error.jpg)
 _Error vector comparing full- and half-network approaches of SRM calibration_
 
 ## Crediting
 
-If you found yourself using the method presented here in a publication, please consider citing [1]. If you want to reuse the measurement data in your own publication, please cite [2].
+If you use this method in your research or publications, please cite our main paper [1]. For use of the measurement data in your own publications, please reference dataset [2].
 
 ## References
 
@@ -118,6 +116,6 @@ If you found yourself using the method presented here in a publication, please c
 
 ## License
 
-Feel free to do whatever you want with the code under limitations of [BSD-3-Clause license](https://github.com/ZiadHatab/srm-calibration/blob/main/LICENSE).
+Feel free to do whatever you want with the code under the terms of the [BSD-3-Clause license](https://github.com/ZiadHatab/srm-calibration/blob/main/LICENSE).
 
 [srm]: https://github.com/ZiadHatab/srm-calibration/blob/main/srm.py

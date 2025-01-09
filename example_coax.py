@@ -56,13 +56,10 @@ def read_s2p_to_S_from_zip(zipfile_full_dir, file_name_contain, use_switch_terms
     freq = S_param[0].frequency
     
     if use_switch_terms:
-        S = rf.NetworkSet( [rf.Network(s=np.array([np.dot([[x[0,0],x[0,1]],
-                                                           [x[1,0],x[1,1]]], np.linalg.inv([[1, x[0,1]*y[0,1]], [x[1,0]*y[1,0], 1]]))
-                                                           for x,y in zip(S.s, sw.s)]), frequency=freq) 
-                                                                              for S,sw in zip(S_param,switch)] )
+        S = rf.NetworkSet( [rf.Network(s=np.array([np.dot([[x[0,0],x[0,1]], [x[1,0],x[1,1]]], np.linalg.inv([[1, x[0,1]*y[0,1]], [x[1,0]*y[1,0], 1]]))
+                                                           for x,y in zip(S.s, sw.s)]), frequency=freq) for S,sw in zip(S_param,switch)] )
     else:
-        S = rf.NetworkSet( [rf.Network(s=np.array([[[x[0,0],x[0,1]],
-                                                    [x[1,0],x[1,1]]] for x in S.s]), frequency=freq) for S in S_param ] )
+        S = rf.NetworkSet( [rf.Network(s=np.array([[[x[0,0],x[0,1]], [x[1,0],x[1,1]]] for x in S.s]), frequency=freq) for S in S_param ] )
     
     return S.mean_s, S.cov(), np.array([s.s for s in S])
 
@@ -146,8 +143,8 @@ if __name__=='__main__':
               est_symmetric=[short_ideal, open_ideal, load_ideal], 
               reciprocal=line,
               est_reciprocal=line_ideal,
-              reciprocal_GammaA=[line_short_p1, line_open_p1, line_match_p1], 
-              #reciprocal_GammaB=[line_short_p2, line_open_p2, line_match_p2],
+              #reciprocal_GammaA=[line_short_p1, line_open_p1, line_match_p1], 
+              reciprocal_GammaB=[line_short_p2, line_open_p2, line_match_p2],
               matchA=match_p1, matchB=match_p2, 
               matchA_def=load_ideal, matchB_def=load_ideal, 
               )
@@ -172,14 +169,11 @@ if __name__=='__main__':
         
         ax = axs[0]
         err = mag2db(SOLR['forward directivity'] - SRM['EDF'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='Forward directivity')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='Forward directivity')
         err = mag2db(SOLR['forward source match'] - SRM['ESF'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='Forward source match')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='Forward source match')
         err = mag2db(SOLR['forward reflection tracking'] - SRM['ERF'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='d', markevery=30, markersize=12,
-                label='Forward reflection tracking')
+        ax.plot(f*1e-9, err, lw=2.5, marker='d', markevery=30, markersize=12, label='Forward reflection tracking')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -190,14 +184,11 @@ if __name__=='__main__':
         
         ax = axs[1]
         err = mag2db(SOLR['reverse directivity'] - SRM['EDR'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='Reverse directivity')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='Reverse directivity')
         err = mag2db(SOLR['reverse source match'] - SRM['ESR'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='Reverse source match')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='Reverse source match')
         err = mag2db(SOLR['reverse reflection tracking'] - SRM['ERR'])
-        ax.plot(f*1e-9, err, lw=2.5, marker='d', markevery=30, markersize=12,
-                label='Reverse reflection tracking')
+        ax.plot(f*1e-9, err, lw=2.5, marker='d', markevery=30, markersize=12, label='Reverse reflection tracking')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -221,11 +212,9 @@ if __name__=='__main__':
         ax.plot(f*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         
         val = mag2db(line_cal_solr.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = mag2db(line_cal_srm.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -238,11 +227,9 @@ if __name__=='__main__':
         val = mag2db(line_ideal.s[:,1,0])
         ax.plot(f*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         val = mag2db(line_cal_solr.s[:,1,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = mag2db(line_cal_srm.s[:,1,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -254,11 +241,9 @@ if __name__=='__main__':
         val = line_ideal.group_delay.real[:,0,0]*1e9
         ax.plot(f*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         val = line_cal_solr.group_delay.real[:,0,0]*1e9
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = line_cal_srm.group_delay.real[:,0,0]*1e9
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -270,11 +255,9 @@ if __name__=='__main__':
         val = line_ideal.group_delay.real[:,1,0]*1e12
         ax.plot(f*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         val = line_cal_solr.group_delay.real[:,1,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = line_cal_srm.group_delay.real[:,1,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -284,11 +267,9 @@ if __name__=='__main__':
         
         ax = axs[2,0]
         err = mag2db((line_ideal.s- line_cal_solr.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         err = mag2db((line_ideal.s- line_cal_srm.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -298,11 +279,9 @@ if __name__=='__main__':
         
         ax = axs[2,1]
         err = mag2db((line_ideal.s- line_cal_solr.s))[:,1,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         err = mag2db((line_ideal.s- line_cal_srm.s))[:,1,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -331,11 +310,9 @@ if __name__=='__main__':
         ax.plot(f_mismacth*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         ax.fill_between(f_mismacth*1e-9, val-k*std, val+k*std, alpha=0.3, color='black')
         val = mag2db(mismatch_cal_solr.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = mag2db(mismatch_cal_srm.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -352,11 +329,9 @@ if __name__=='__main__':
         ax.plot(f_mismacth*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         ax.fill_between(f_mismacth*1e-9, val-k*std, val+k*std, alpha=0.3, color='black')
         val = mag2db(offsetshort_cal_solr.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = mag2db(offsetshort_cal_srm.s[:,0,0])
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -372,11 +347,9 @@ if __name__=='__main__':
         ax.plot(f_mismacth*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         ax.fill_between(f_mismacth*1e-9, val-k*std, val+k*std, alpha=0.3, color='black')
         val = mismatch_cal_solr.group_delay.real[:,0,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = mismatch_cal_srm.group_delay.real[:,0,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -391,11 +364,9 @@ if __name__=='__main__':
         ax.plot(f_offsetshort*1e-9, val, lw=3, label='Reference', linestyle='-', color='black')
         ax.fill_between(f_offsetshort*1e-9, val-k*std, val+k*std, alpha=0.3, color='black')
         val = offsetshort_cal_solr.group_delay.real[:,0,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         val = offsetshort_cal_srm.group_delay.real[:,0,0]*1e12
-        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, val, lw=2.5, marker='X', markevery=30, markersize=10, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -405,11 +376,9 @@ if __name__=='__main__':
         
         ax = axs[2,0]
         err = mag2db((mismatch_ideal.s- mismatch_cal_solr.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         err = mag2db((mismatch_ideal.s- mismatch_cal_srm.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
@@ -419,11 +388,9 @@ if __name__=='__main__':
         
         ax = axs[2,1]
         err = mag2db((offsetshort_ideal.s- offsetshort_cal_solr.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12,
-                label='SOLR', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='o', markevery=30, markersize=12, label='SOLR', linestyle='-')
         err = mag2db((offsetshort_ideal.s- offsetshort_cal_srm.s))[:,0,0] 
-        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12,
-                label='SRM', linestyle='-')
+        ax.plot(f*1e-9, err, lw=2.5, marker='X', markevery=30, markersize=12, label='SRM', linestyle='-')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,45,5))
         ax.set_xlim(0,40)
