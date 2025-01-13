@@ -8,6 +8,7 @@ in _IEEE Transactions on Instrumentation and Measurement_, vol. 73, pp. 1-11, 20
 doi: https://doi.org/10.1109/TIM.2024.3350124, e-print: https://arxiv.org/abs/2309.02886
 """
 import warnings
+import scipy.optimize
 import skrf as rf
 import numpy as np
 import scipy    # for nonlinear optimization
@@ -183,13 +184,64 @@ def correct_switch_term(S, GF, GR):
     S_new[1,1] = (S[1,1]-S[0,1]*S[1,0]*GR)/(1-S[0,1]*S[1,0]*GF*GR)
     return S_new
 
+def obj(x, *argv):
+    """Objective function for fitting model to one-port stanadards.
+    x: model parameters  (this is theta in the paper)
+
+    f: all frequency points
+    Wa: eigenvectors at port-A
+    Wb: eigenvectors at port-B
+    meas_p1: measured reflections at port-A (match and some other reflect standard)
+    meas_p2: measured reflections at port-B (match and some other reflect standard)
+    model: list of model function that describe the one-port device being fitted (e.g., match and some reflect standard)
+    num_var: number of variables for each model function (e.g., 5 for match and 3 for reflect standard)
+    """
+    
+    f  = argv[0]
+    Wa = argv[1]
+    Wb = argv[2]
+    meas_p1 = argv[3]
+    meas_p2 = argv[4]
+    model   = argv[5]
+    num_var = argv[6]
+    
+    X = [ x[num_var[:inx].sum():num_var[:inx].sum()+y] for inx, y in enumerate(num_var) ]
+    
+    model_data = np.array([m(f,xx) for m,xx in zip(model, X)])
+    
+    # port-A
+    sigma_p1 = []
+    for w, Gamma, rho in zip(Wa, meas_p1.T, model_data.T):
+        G1 = np.array([[-1, -1, w[0,0]/w[1,0], w[0,0]/w[1,0]],
+                       [1, -1, -w[0,1]/w[1,1], w[0,1]/w[1,1]]])
+        
+        G2 = np.array([[-r, -1, r*g, g] for r,g in zip(rho,Gamma)])
+        
+        G = np.vstack((G1,G2))
+        s = np.linalg.svd(G, compute_uv=False)
+        sigma_p1.append(s[3])
+    
+    # port-B
+    sigma_p2 = []
+    for w, Gamma, rho in zip(Wb, meas_p2.T, model_data.T):
+        G1 = np.array([[-1, -1, w[0,0]/w[1,0], w[0,0]/w[1,0]],
+                       [1, -1, -w[0,1]/w[1,1], w[0,1]/w[1,1]]])
+        
+        G2 = np.array([[-r , 1, -r*g, g] for r,g in zip(rho,Gamma)])
+        
+        G = np.vstack((G1,G2))
+        s = np.linalg.svd(G, compute_uv=False)
+        sigma_p2.append(s[3])
+    
+    return ( np.array(sigma_p1) + np.array(sigma_p2) ).mean()
+
 class SRM:
     """
     symmetric-reciprocal-match calibration method.
     """
     def __init__(self, symmetric, est_symmetric, reciprocal, est_reciprocal, matchA, matchB, matchA_def=None, matchB_def=None, 
                  reciprocal_GammaA=None, reciprocal_GammaB=None, switch_term=None, 
-                 model_fit=None, use_symmetric_network=False, use_half_network=False):
+                 model_fit=None, use_symmetric_network=False, use_half_network=False, fit_max_iter=1000):
         """SRM calibration class.
 
         Parameters
@@ -205,7 +257,8 @@ class SRM:
         reciprocal_GammaA (list[Network]): 1-port measurements at port A. Either port A or B provided or both.
         reciprocal_GammaB (list[Network]): 1-port measurements at port B.
         switch_term (list[Network], optional): Forward and reverse switch terms.
-        model_fit (dict, optional): Settings for match parasitic fitting. Defaults to None.
+        model_fit (list of dict, optional): Settings for match parasitic fitting. Defaults to None.
+        fit_max_iter (int, optional): Maximum number of iterations for the model fitting optimization.
         use_half_network (bool, optional): Use half network procedure (see paper).
         use_symmetric_network (bool, optional): Use symmetric network procedure. 
         This will alow you to use at least 2 one-port standards instead of 3.
@@ -239,6 +292,7 @@ class SRM:
         self.model_fit = model_fit
         self.use_symmetric_network = use_symmetric_network  # allow at least 2 one-port networks if two-port network is symmetric
         self.use_half_network = use_half_network
+        self.fit_max_iter = fit_max_iter
         
         # check number of standards provided
         num_symmetric = self.Ssymmetric.shape[0]
@@ -286,11 +340,68 @@ class SRM:
             Wa.append(Wa_)
             Wb.append(Wb_)
             print(f'Frequency: {f*1e-9:.2f} GHz ... DONE!')
+        
+        # perform optimization to model fit the match standard
+        if self.model_fit:
+            print('Running optimization to fit match standard...')
+            # model_fit is a list of dictionary containing information on each standard being fitted
+            f = self.f
+            x0      = []    # initial values
+            bounds  = []    # solution bounds
+            meas_p1 = []    # measured reflection at port-A
+            meas_p2 = []    # measured reflection at port-B
+            model   = []    # model function
+            num_var = []    # number of variables for each model function
+            for item in self.model_fit:
+                x0     = x0 + item['initialValues']
+                bounds = bounds + item['bounds']
+                meas_p1.append(item['meas'][0])
+                meas_p2.append(item['meas'][1])
+                model.append(item['func'])
+                num_var.append(len(item['initialValues']))
+            num_var = np.array(num_var)
+            meas_p1 = np.array(meas_p1)
+            meas_p2 = np.array(meas_p2)
             
-        self.A = np.array(A)
-        self.B = np.array(B)
-        self.X = np.array([np.kron(b.T, a) for a,b in zip(self.A, self.B)])
-        self.k = np.array(k)
+            save_sol = [] # save solution from each iteration
+            save_iteration_results = lambda xk,convergence: save_sol.append(xk)
+            xx = scipy.optimize.differential_evolution(obj, bounds, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var),
+                                                    disp=True, polish=True, maxiter=self.fit_max_iter, 
+                                                    strategy='randtobest1bin', init='sobol',
+                                                    popsize=10, mutation=(0.1,1.9), recombination=0.9, 
+                                                    tol=1e-6,
+                                                    updating='deferred', workers=-1, callback=save_iteration_results
+                                                    )
+            '''
+            # use gradient based optimization (can get you the wrong answer for large number of variables)
+            save_iteration_results = lambda xk: save_x.append(xk)
+            xx = scipy.optimize.minimize(obj, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var), 
+                                         method='Nelder-Mead', bounds=bounds, callback=save_iteration_results,
+                                         options={'disp': True}, tol=1e-10)
+            '''
+            # final solution from the optimization
+            model_para_final = [ xx.x[num_var[:inx].sum():num_var[:inx].sum()+y] for inx, y in enumerate(num_var) ]
+            # all solutions from the optimization at each iteration (last one is the final solution)
+            model_para_all = []
+            for x in save_sol:
+                model_para_all.append([ x[num_var[:inx].sum():num_var[:inx].sum()+y] for inx, y in enumerate(num_var) ])
+            
+            self.model_eval  = np.array([m(f,x) for m,x in zip(model, model_para_final)])  # evaluate the model at the final solution
+            self.model_para = model_para_final
+            self.model_para_all = model_para_all
+            # solve for the error terms using the final solution for the match standard
+            A = [solve_box(w, m, r, True) for w,m,r in zip(Wa, meas_p1[0], self.model_eval[0])]     # first one is always assumed to be match standard
+            B = [solve_box(w, m, r, False) for w,m,r in zip(Wb, meas_p2[0], self.model_eval[0])]
+            k_est = k
+            k = []
+            for a,b,s,ke in zip(A,B,self.Sreciprocal,k_est):
+                k_ = np.sqrt(np.linalg.det(s2t(s))/np.linalg.det(a)/np.linalg.det(b))
+                k.append( k_ if abs(k_-ke) < abs(k_+ke) else -k_ )
+
+        self.A  = np.array(A)
+        self.B  = np.array(B)
+        self.X  = np.array([np.kron(b.T, a) for a,b in zip(self.A, self.B)])
+        self.k  = np.array(k)
         self.Wa = np.array(Wa)
         self.Wb = np.array(Wb)
         self.error_coef() # compute the 12 error terms

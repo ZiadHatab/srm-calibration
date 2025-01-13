@@ -2,7 +2,7 @@
 
 A self-calibration procedure for vector network analyzers (VNAs) that uses partial defined standards.
 
-## **Basic principle**
+## Basic principle
 
 SRM calibration involves measuring multiple partially defined standards. The measurements includes:
 
@@ -103,6 +103,22 @@ The simulation outcome is not surprising: it yields exact results, as indicated 
 
 ![](./Images/cpw_error.jpg)
 _Error vector comparing full- and half-network approaches of SRM calibration_
+
+### CPW numerical simulation with automatic model fitting
+
+This example demonstrates model fitting of the match standard using nonlinear optimization. The procedure is general, requiring you to specify your model which is later used in the SRM code's objective function. The optimization uses [`Differential Evolution`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
+
+The example uses the same CPW data from the previous simulation, considering two cases: (1) ideal match standard (zero reflection) and (2) match standard with estimated model parameters.
+
+Note that you always need at least one additional modeled standard (short or open) along with the match standard, but the final calibration only uses the match standard results.
+
+Below are comparisons between using an ideal match versus running the optimization, along with the relative error of the estimated parameters. See the example file for more details.
+
+![](./Images/numerical_simulation_DUT.jpg)
+_DUT S-parameters and its relative error_
+
+![](./Images/error_in_parameters.jpg)
+_Relative error of the extracted model parameters_
 
 ## Crediting
 

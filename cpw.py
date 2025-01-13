@@ -17,12 +17,10 @@ https://ieeexplore.ieee.org/document/1159676
 https://ieeexplore.ieee.org/document/9338133
 '''
 
-# pip install numpy matplotlib scipy -U
+# pip install numpy scipy -U
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.special as ssp
 import scipy.optimize as so
-import scipy.integrate as si
 
 ## Functions below are needed to implement the cpw model based on [1] and [2].
 def K(x):
@@ -47,18 +45,28 @@ def PI(n,m):
     # Complete elliptic integral of the third kind
     # Based on Eq. (16) in [2].
     '''
-    At the time of writing, scipy didn't support the Complete elliptic integral of the third kind.
-    Therefore, I implemented it myself based on the paper below.
-    Toshio Fukushima,
-    Fast computation of a general complete elliptic integral of third kind by half and double argument transformations,
-    Journal of Computational and Applied Mathematics,
-    Volume 253, 2013, Pages 142-157, ISSN 0377-0427,
-    https://doi.org/10.1016/j.cam.2013.04.015.
+    copied from the answer in stackoverflow. It is much faster than my own implementation.
+    https://stackoverflow.com/questions/77488171/complete-integral-of-the-third-kind-using-scipy-python-and-mathematica
     '''
-    B = lambda phi: np.cos(phi)**2/np.sqrt(1-m*np.sin(phi)**2)
-    D = lambda phi: np.sin(phi)**2/np.sqrt(1-m*np.sin(phi)**2)
-    J = lambda phi: np.sin(phi)**2/np.sqrt(1-m*np.sin(phi)**2)/(1-n*np.sin(phi)**2)
-    return si.quad(B, 0, np.pi/2)[0] + si.quad(D, 0, np.pi/2)[0] + n*si.quad(J, 0, np.pi/2)[0]
+    return ssp.elliprf(0, 1-m, 1) + (n/3)*ssp.elliprj(0, 1-m, 1, 1-n)
+
+# import scipy.integrate as si
+# def PI(n,m):
+#     # Complete elliptic integral of the third kind
+#     # Based on Eq. (16) in [2].
+#     '''
+#     At the time of writing, scipy didn't support the Complete elliptic integral of the third kind.
+#     Therefore, I implemented it myself based on the paper below.
+#     Toshio Fukushima,
+#     Fast computation of a general complete elliptic integral of third kind by half and double argument transformations,
+#     Journal of Computational and Applied Mathematics,
+#     Volume 253, 2013, Pages 142-157, ISSN 0377-0427,
+#     https://doi.org/10.1016/j.cam.2013.04.015.
+#     '''
+#     B = lambda phi: np.cos(phi)**2/np.sqrt(1-m*np.sin(phi)**2)
+#     D = lambda phi: np.sin(phi)**2/np.sqrt(1-m*np.sin(phi)**2)
+#     J = lambda phi: np.sin(phi)**2/np.sqrt(1-m*np.sin(phi)**2)/(1-n*np.sin(phi)**2)
+#     return si.quad(B, 0, np.pi/2)[0] + si.quad(D, 0, np.pi/2)[0] + n*si.quad(J, 0, np.pi/2)[0]
 
 def F(w,s,wg,t):
     # Based on Eq. (1) in [1].
@@ -437,6 +445,8 @@ class CPW:
         
 
 if __name__=='__main__':
+    import matplotlib.pyplot as plt # for plotting
+
     # constants
     mu0 = 1.25663706212e-6
     ep0 = 8.8541878128e-12

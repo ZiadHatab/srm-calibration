@@ -72,14 +72,18 @@ def t2s(T, pseudo=False):
     S[1,1] = -T[1,0]
     return [S,T[1,1]] if pseudo else S/T[1,1]
 
-def input_reflection_l2r(T, G):
-    return (T[0,1]+T[0,0]*G)/(T[1,1]+T[1,0]*G)
+def mobius(T, z):
+    # mobius transformation
+    t11, t12, t21, t22 = T[0,0], T[0,1], T[1,0], T[1,1]
+    return (t11*z + t12)/(t21*z + t22)
 
-def input_reflection_r2l(T, G):
-    return (T[0,0]*G-T[1,0])/(T[1,1]-T[0,1]*G)
+def mobius_inv(T, z):
+    # inverse mobius transformation
+    t11, t12, t21, t22 = T[0,0], T[0,1], T[1,0], T[1,1]
+    return (t12 - t22*z)/(t21*z - t11)
 
 def Qnm(Zn, Zm):
-    # Impedance transformer in T-paramters from on Eqs. (86) and (87) in
+    # Impedance transformer in T-parameters from on Eqs. (86) and (87) in
     # R. Marks and D. Williams, "A general waveguide circuit theory," 
     # Journal of Research (NIST JRES), National Institute of Standards and Technology,
     # Gaithersburg, MD, no. 97, 1992.
@@ -87,40 +91,72 @@ def Qnm(Zn, Zm):
     Gnm = (Zm-Zn)/(Zm+Zn)
     return np.sqrt(Zn.real/Zm.real*(Zm/Zn).conjugate())/np.sqrt(1-Gnm**2)*np.array([[1, Gnm],[Gnm, 1]])
 
-def general_1port_standard(f, Rdc=50, L=0, C=0, G=0, gamma=0, Zc=50, l=0, Zref=50, shunt_series=True):
+def one_port_device(f, Rdc=50, L=0, C=0, G=0, gamma=0, Zc=50, l=0, Zref=50, shunt_series=True):
+    """generate a general one-port device model
+    Parameters:
+        f: (list or float) frequency in Hz
+        Rdc: (float) DC resistance in Ohm
+        L: (list or float) inductance in Henry. If list, it should match frequency points
+        C: (list or float) capacitance in Farad. If list, it should match frequency points
+        G: (list or float) conductance in Siemens. If list, it should match frequency points
+        gamma: (list or float) propagation constant of the transmission line in Np/m.
+        Zc: (list or float) characteristic impedance of the transmission line in Ohm.
+        l: (float) length of the transmission line in meters.
+        Zref: (list or float) reference impedance in Ohm.
+        NOTE: all parameters can be list, but they should have the same length as f. Except Rdc and l. 
+    """
+    # make everything an array
     f = np.atleast_1d(f)
-    N = len(f)
+    L = np.ones_like(f)*L
+    C = np.ones_like(f)*C
+    G = np.ones_like(f)*G
+    gamma = np.ones_like(f)*gamma
+    Zc = np.ones_like(f)*Zc
+    Zref = np.ones_like(f)*Zref
     
-    gamma = np.ones(N)*gamma
-    Zc = np.ones(N)*Zc
+    # compute the reflection coefficient at DC (check if Rdc is infinite, i.e., open)
+    rho_dc = np.ones_like(f) if np.isinf(Rdc) else (Rdc-Zref)/(Rdc+Zref)
     
-    rho_dc = 1 if np.isinf(Rdc) else (Rdc-Zref)/(Rdc+Zref)
+    # compute the lumped elements, either series-shunt or shunt-series
     omega  = 2*np.pi*f
-    
     Y = (G + 1j*omega*C)*Zref
     Z = 1j*omega*L/Zref
     if shunt_series:
+        # see paper for equations: https://doi.org/10.1109/OJIM.2023.3315349
         # C-L configuration (for short and finite impedances)
         P = 0.5*np.array([ [ [(1-y)*(1-z)+1, (1-y)*(1+z)-1],[(1+y)*(1-z)-1, (1+y)*(1+z)+1] ] for y,z in zip(Y,Z) ])
     else:
         # L-C configuration (for open and near open impedances)
         P = 0.5*np.array([ [ [(1-y)*(1-z)+1, (y+1)*(z-1)+1], [(y-1)*(z+1)+1, (1+y)*(1+z)+1] ] for y,z in zip(Y,Z) ])
-        
-    T = np.array([ Qnm(Zref,zc)@np.diag([np.exp(-g*l), np.exp(g*l)])@Qnm(zc,Zref) for g,zc in zip(gamma, Zc)])
-    rho = np.array([input_reflection_l2r(t@p, rho_dc) for t,p in zip(T,P)])    
-    return rho
+
+    # compute the transmission line segment as T-parameters    
+    T = np.array([ Qnm(zr,zc)@np.diag([np.exp(-g*l), np.exp(g*l)])@Qnm(zc,zr) for g,zc,zr in zip(gamma, Zc, Zref)])
     
+    # return the final reflection coefficient (not an skrf network)
+    return np.array([mobius(t@p, rdc) for t,p,rdc in zip(T,P,rho_dc)])
+
 def TL(l, cpw, Z01=None, Z02=None):
-    # create skrf network from a general transmission line model from an cpw object (file: cpw.py)
-    N = len(cpw.Z0)  # number of frequency points
-    Z01 = cpw.Z0 if Z01 is None else np.atleast_1d(Z01)*np.ones(N)
-    Z02 = Z01 if Z02 is None else np.atleast_1d(Z02)*np.ones(N)
+    """
+    create an skrf network from a general transmission line model from an cpw object (see file: cpw.py)
+    Parameters:
+       l: (float) length of the transmission line in meters.
+       cpw: (object) cpw object (see file: cpw.py)
+       Z01: (list or float) reference impedance from the left side. If None, it is the same as cpw.Z0.
+       Z02: (list or float) reference impedance from the right side. If None, it is the same as Z01.
+    """
+
+    f = cpw.f    # frequency points
+    Z01 = cpw.Z0 if Z01 is None else np.atleast_1d(Z01)*np.ones_like(f)
+    Z02 = Z01 if Z02 is None else np.atleast_1d(Z02)*np.ones_like(f)
+    
     S = []
     for g,zc,z01,z02 in zip(cpw.gamma, cpw.Z0, Z01, Z02):
         T = Qnm(z01,zc)@np.diag([np.exp(-l*g), np.exp(l*g)])@Qnm(zc,z02)
         S.append(t2s(T))
+    
     freq = rf.Frequency.from_f(cpw.f, unit='Hz')
     freq.unit = 'GHz'
+    
     return rf.Network(s=np.array(S), frequency=freq, name=f'l={l*1e3:.2f}mm')
 
 def embbed_error(k,X,NW):
@@ -195,19 +231,19 @@ if __name__=='__main__':
         
     length_offset = 0.2e-3
     
-    L_short = 10e-12 #+ 1e-25*f
+    L_short = 10e-12 + 1e-25*f
     C_short = 0.5e-15
-    short_cpw = skrf_from_rho(f, general_1port_standard(f, Rdc=0, L=L_short, C=C_short, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=True))
+    short_cpw = skrf_from_rho(f, one_port_device(f, Rdc=0, L=L_short, C=C_short, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=True))
     short_cpw = rf.two_port_reflect(short_cpw, short_cpw)
     
     L_open = 0.5e-12
-    C_open = 10e-15 #+ 1e-31*f
-    open_cpw = skrf_from_rho(f, general_1port_standard(f, Rdc=np.inf, L=L_open, C=C_open, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=False))
+    C_open = 10e-15 + 1e-31*f
+    open_cpw = skrf_from_rho(f, one_port_device(f, Rdc=np.inf, L=L_open, C=C_open, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=False))
     open_cpw = rf.two_port_reflect(open_cpw, open_cpw)
     
     L_match = 5e-12
     C_match = 0.5e-15
-    match_cpw = skrf_from_rho(f, general_1port_standard(f, Rdc=50, L=L_match, C=C_match, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=True))
+    match_cpw = skrf_from_rho(f, one_port_device(f, Rdc=50, L=L_match, C=C_match, l=length_offset, gamma=cpw.gamma, Zc=cpw.Z0, shunt_series=True))
     match_cpw = rf.two_port_reflect(match_cpw, match_cpw)
         
     SHORT = embbed_error(cal.k, cal.X, short_cpw)
@@ -298,9 +334,9 @@ if __name__=='__main__':
         ax.set_ylim(-350,-250)
         ax.legend(loc='lower right', ncol=1, fontsize=12)
     
-        #fig.savefig('error_numerical_simulation_DUT.pdf', format='pdf', dpi=300, 
-        #        bbox_inches='tight', pad_inches = 0)
+        #fig.savefig('error_numerical_simulation_DUT.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
                     
         
     plt.show()
-    # EOF
+
+# EOF
