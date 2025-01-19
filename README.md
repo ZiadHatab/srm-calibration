@@ -120,6 +120,18 @@ _DUT S-parameters and its relative error_
 ![](./Images/error_in_parameters.jpg)
 _Relative error of the extracted model parameters_
 
+### Microstrip measurement with automatic model fitting
+
+This example demonstrates SRM calibration using actual measurements of a microstrip PCB kit, comparing results against multiline TRL calibration. Three scenarios are considered for defining the match standard: (1) ideal match (zero reflection), (2) match defined through model fitted during SRM calibration, and (3) match defined using calibrated measurements from multiline TRL.
+
+The results below show measurements of a stepped-impedance line DUT. The comparison also includes the extracted match model against the calibrated response from multiline TRL. Pretty good agreement, I would say 😗
+
+![](./Images/ms_dut_srm_vs_trl.jpg)
+_DUT S-parameters and its relative error_
+
+![](./Images/ms_srm_match_fit_vs_trl.jpg)
+_Comparison of SRM extracted match model against TRL measurement_
+
 ## Crediting
 
 If you use this method in your research or publications, please cite our main paper [1]. For use of the measurement data in your own publications, please reference dataset [2].

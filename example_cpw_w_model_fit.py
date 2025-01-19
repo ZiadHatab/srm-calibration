@@ -358,8 +358,7 @@ if __name__=='__main__':
               reciprocal=RECIPROCAL,
               est_reciprocal=line_cpw_full,
               reciprocal_GammaA=[RECI_full_SHORT_p1, RECI_full_OPEN_p1, RECI_full_MATCH_p1],
-              matchA=MATCH.s11, matchB=MATCH.s22, matchA_def=None, matchB_def=None,
-              model_fit=None
+              matchA=MATCH.s11, matchB=MATCH.s22
               )
     cal_ideal_match.run()
 
@@ -369,8 +368,9 @@ if __name__=='__main__':
               reciprocal=RECIPROCAL,
               est_reciprocal=line_cpw_full,
               reciprocal_GammaA=[RECI_full_SHORT_p1, RECI_full_OPEN_p1, RECI_full_MATCH_p1],
-              matchA=MATCH.s11, matchB=MATCH.s22, matchA_def=None, matchB_def=None,
+              matchA=MATCH.s11, matchB=MATCH.s22,
               model_fit=model_fit,
+              fit_max_iter=100  # this controls number of iteration taken by the DE method
               )
     cal_fitted_match.run()
     
@@ -391,7 +391,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('S11 (dB)')
+        ax.set_ylabel('|S11| (dB)')
         ax.set_yticks(np.arange(-40,0.1,10))
         ax.set_ylim(-40,0)
         
@@ -402,7 +402,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('S21 (dB)')
+        ax.set_ylabel('|S21| (dB)')
         ax.set_yticks(np.arange(-4,0.1,1))
         ax.set_ylim(-4,0)
         ax.legend(loc='lower left', ncol=1, fontsize=11)
@@ -414,7 +414,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel(r'S11 ($\times \pi$ rad)')
+        ax.set_ylabel(r'arg(S11) ($\times \pi$ rad)')
         ax.set_yticks(np.arange(-1,1.1,0.4))
         ax.set_ylim(-1,1)
         
@@ -425,7 +425,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel(r'S21 ($\times \pi$ rad)')
+        ax.set_ylabel(r'arg(S21) ($\times \pi$ rad)')
         ax.set_yticks(np.arange(-1,1.1,0.4))
         ax.set_ylim(-1,1)
         
@@ -435,7 +435,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('Relative Error')
+        ax.set_ylabel('S11 Relative Error')
         ax.set_yticks(np.logspace(-16, 2, 4))
         ax.set_ylim(1e-16,1e2)
         #ax.legend(loc='lower right', ncol=1, fontsize=12)
@@ -446,7 +446,7 @@ if __name__=='__main__':
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('Relative Error')
+        ax.set_ylabel('S21 Relative Error')
         ax.set_yticks(np.logspace(-16, 2, 4))
         ax.set_ylim(1e-16,1e2)
         #fig.savefig('numerical_simulation_DUT.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
@@ -457,13 +457,13 @@ if __name__=='__main__':
         fig.set_dpi(600)
         fig.tight_layout(w_pad=3, h_pad=2.5)
         ax = axs[0]
-        err = np.array([abs( (x[1]-theta_short_true)/theta_short_true ) for x in cal_fitted_match.model_para_all])
-        err = np.vstack(( err, abs( (cal_fitted_match.model_para[1]-theta_short_true)/theta_short_true ) ))
+        err = np.array([abs( (x[1]-theta_short_true)/theta_short_true ) for x in cal_fitted_match.model_para_all_A])
+        err = np.vstack(( err, abs( (cal_fitted_match.model_para_A[1]-theta_short_true)/theta_short_true ) ))
         label_text = ['L0', 'L1', 'C0', r'$\epsilon_r^\prime$', r'$\tan\delta$', r'$\sigma_r$']
         for x, tex in zip(err.T,label_text):
             ax.semilogy(x, lw=2, label=tex, linestyle='-')
         ax.set_xlabel('Optimization Index')
-        ax.set_xlim(0,1000)
+        ax.set_xlim(0,cal_fitted_match.fit_max_iter)
         ax.set_ylabel('Relative Error')
         ax.set_yticks(np.logspace(-16, 2, 4))
         ax.set_ylim(1e-16,1e2)
@@ -471,19 +471,76 @@ if __name__=='__main__':
         ax.set_title('Short Standard')
         
         ax = axs[1]
-        err = np.array([abs( (x[0]-theta_match_true)/theta_match_true ) for x in cal_fitted_match.model_para_all])
-        err = np.vstack(( err, abs( (cal_fitted_match.model_para[0]-theta_match_true)/theta_match_true ) ))
+        err = np.array([abs( (x[0]-theta_match_true)/theta_match_true ) for x in cal_fitted_match.model_para_all_A])
+        err = np.vstack(( err, abs( (cal_fitted_match.model_para_A[0]-theta_match_true)/theta_match_true ) ))
         label_text = ['L0', 'C0', r'$\epsilon_r^\prime$', r'$\tan\delta$', r'$\sigma_r$']
         for x, tex in zip(err.T,label_text):
             ax.semilogy(x, lw=2, label=tex, linestyle='-')
         ax.set_xlabel('Optimization Index')
-        ax.set_xlim(0,1000)
+        ax.set_xlim(0,cal_fitted_match.fit_max_iter)
         ax.set_ylabel('Relative Error')
         ax.set_yticks(np.logspace(-16, 2, 4))
         ax.set_ylim(1e-16,1e2)
         ax.legend(loc='lower left', ncol=1, fontsize=12)
         ax.set_title('Match Standard') 
         #fig.savefig('error_in_parameters.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
+        
+        """
+        This for when using all three standards in optimization
+        with PlotSettings(14):
+            # Create figure with set size
+            fig = plt.figure(figsize=(10,6), dpi=600)
+            
+            # Create 2x2 grid, with spans for top row subplots
+            gs = fig.add_gridspec(2, 4)
+            
+            # Top left plot - Short Standard
+            ax1 = fig.add_subplot(gs[0,:2])
+            err = np.array([abs( (x[1]-theta_short_true)/theta_short_true ) for x in cal_fitted_match.model_para_all_A])
+            err = np.vstack(( err, abs( (cal_fitted_match.model_para_A[1]-theta_short_true)/theta_short_true ) ))
+            label_text = ['L0', 'L1', 'C0', r'$\epsilon_r^\prime$', r'$\tan\delta$', r'$\sigma_r$']
+            for x, tex in zip(err.T,label_text):
+                ax1.semilogy(x, lw=2, label=tex, linestyle='-')
+            ax1.set_xlabel('Optimization Index')
+            ax1.set_xlim(0,cal_fitted_match.fit_max_iter)
+            ax1.set_ylabel('Relative Error')
+            ax1.set_yticks(np.logspace(-16, 2, 4))
+            ax1.set_ylim(1e-16,1e2)
+            ax1.legend(loc='lower left', ncol=2, fontsize=12)
+            ax1.set_title('Short Standard')
+            
+            # Top right plot - Match Standard  
+            ax2 = fig.add_subplot(gs[0,2:])
+            err = np.array([abs( (x[0]-theta_match_true)/theta_match_true ) for x in cal_fitted_match.model_para_all_A])
+            err = np.vstack(( err, abs( (cal_fitted_match.model_para_A[0]-theta_match_true)/theta_match_true ) ))
+            label_text = ['L0', 'C0', r'$\epsilon_r^\prime$', r'$\tan\delta$', r'$\sigma_r$']
+            for x, tex in zip(err.T,label_text):
+                ax2.semilogy(x, lw=2, label=tex, linestyle='-')
+            ax2.set_xlabel('Optimization Index')
+            ax2.set_xlim(0,cal_fitted_match.fit_max_iter)
+            ax2.set_ylabel('Relative Error')
+            ax2.set_yticks(np.logspace(-16, 2, 4))
+            ax2.set_ylim(1e-16,1e2)
+            ax2.legend(loc='lower left', ncol=2, fontsize=12)
+            ax2.set_title('Match Standard')
+            
+            # Bottom center plot spanning both columns
+            ax3 = fig.add_subplot(gs[1,1:3])
+            err = np.array([abs( (x[2]-theta_open_true)/theta_open_true ) for x in cal_fitted_match.model_para_all_A])
+            err = np.vstack(( err, abs( (cal_fitted_match.model_para_A[2]-theta_open_true)/theta_open_true ) ))
+            label_text = ['L0', 'C0', 'C1', r'$\epsilon_r^\prime$', r'$\tan\delta$', r'$\sigma_r$']
+            for x, tex in zip(err.T,label_text):
+                ax3.semilogy(x, lw=2, label=tex, linestyle='-')
+            ax3.set_xlabel('Optimization Index')
+            ax3.set_xlim(0,cal_fitted_match.fit_max_iter)
+            ax3.set_ylabel('Relative Error')
+            ax3.set_yticks(np.logspace(-16, 2, 4))
+            ax3.set_ylim(1e-16,1e2)
+            ax3.legend(loc='lower left', ncol=2, fontsize=12)
+            ax3.set_title('Open Standard')
+
+            fig.tight_layout()
+        """
         
     plt.show()
     # EOF

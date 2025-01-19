@@ -44,11 +44,9 @@ def solve_symmetric_mobius(GammaA, GammaB, lower_rank=False):
     # GammaB : list of input reflection from port-B
     # see equation (14) in the paper
     H = np.array([[-b, -1, b*a, a] for a,b in zip(GammaA,GammaB)])
-
     if lower_rank:
         E = np.array([[0, 0, -1], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
         H = H@E
-
     _,_,vh = np.linalg.svd(H) # compute the SVD
     nullspace = vh[-1,:].conj()
     nullspace = E@nullspace if lower_rank else nullspace  # undo E
@@ -162,7 +160,7 @@ def solve_at_one_freq(symmetric, est_symmetric, reciprocal, est_reciprocal,
     first = True if err1 < err2 else False
     B = B1 if first else B2
     Wb = Wb if first else Wb@p
-    
+
     # solve for 7th error term
     k = np.sqrt(np.linalg.det(Mnet)/np.linalg.det(A)/np.linalg.det(B))
     err1 = abs( k*A@s2t(est_reciprocal)@B - Mnet ).sum()
@@ -185,18 +183,31 @@ def correct_switch_term(S, GF, GR):
     return S_new
 
 def obj(x, *argv):
-    """Objective function for fitting model to one-port stanadards.
-    x: model parameters  (this is theta in the paper)
-
-    f: all frequency points
-    Wa: eigenvectors at port-A
-    Wb: eigenvectors at port-B
-    meas_p1: measured reflections at port-A (match and some other reflect standard)
-    meas_p2: measured reflections at port-B (match and some other reflect standard)
-    model: list of model function that describe the one-port device being fitted (e.g., match and some reflect standard)
-    num_var: number of variables for each model function (e.g., 5 for match and 3 for reflect standard)
-    """
+    """Objective function for fitting models to one-port standards.
     
+    Parameters
+    ----------
+    x : array-like
+        Model parameters (theta in the paper)
+    f : array-like
+        Frequency points
+    Wa : array-like 
+        Eigenvectors at port A
+    Wb : array-like
+        Eigenvectors at port B 
+    meas_p1 : array-like
+        Measured reflections at port A (match and other reflect standards)
+    meas_p2 : array-like
+        Measured reflections at port B (match and other reflect standards)
+    model : list of callable
+        List of model functions that describe the one-port devices being fitted
+        (e.g., match and reflect standards)
+    num_var : list of int
+        Number of variables for each model function
+        (e.g., 5 for match, 3 for reflect standard)
+    split_solution : bool
+        Whether to use separate model parameters for ports A and B
+    """
     f  = argv[0]
     Wa = argv[1]
     Wb = argv[2]
@@ -204,14 +215,20 @@ def obj(x, *argv):
     meas_p2 = argv[4]
     model   = argv[5]
     num_var = argv[6]
-    
+    split_solution = argv[7]
+    num_mes = meas_p1.shape[0]
+
     X = [ x[num_var[:inx].sum():num_var[:inx].sum()+y] for inx, y in enumerate(num_var) ]
-    
-    model_data = np.array([m(f,xx) for m,xx in zip(model, X)])
-    
+    if split_solution:
+        model_data_A = np.array([m(f,xx) for m,xx in zip(model, X[:num_mes])])
+        model_data_B = np.array([m(f,xx) for m,xx in zip(model, X[num_mes:])])
+    else:
+        model_data_A = np.array([m(f,xx) for m,xx in zip(model, X[:num_mes])])
+        model_data_B = model_data_A
+
     # port-A
     sigma_p1 = []
-    for w, Gamma, rho in zip(Wa, meas_p1.T, model_data.T):
+    for w, Gamma, rho in zip(Wa, meas_p1.T, model_data_A.T):
         G1 = np.array([[-1, -1, w[0,0]/w[1,0], w[0,0]/w[1,0]],
                        [1, -1, -w[0,1]/w[1,1], w[0,1]/w[1,1]]])
         
@@ -223,7 +240,7 @@ def obj(x, *argv):
     
     # port-B
     sigma_p2 = []
-    for w, Gamma, rho in zip(Wb, meas_p2.T, model_data.T):
+    for w, Gamma, rho in zip(Wb, meas_p2.T, model_data_B.T):
         G1 = np.array([[-1, -1, w[0,0]/w[1,0], w[0,0]/w[1,0]],
                        [1, -1, -w[0,1]/w[1,1], w[0,1]/w[1,1]]])
         
@@ -241,28 +258,45 @@ class SRM:
     """
     def __init__(self, symmetric, est_symmetric, reciprocal, est_reciprocal, matchA, matchB, matchA_def=None, matchB_def=None, 
                  reciprocal_GammaA=None, reciprocal_GammaB=None, switch_term=None, 
-                 model_fit=None, use_symmetric_network=False, use_half_network=False, fit_max_iter=1000):
+                 model_fit=None, model_fit_split=False, use_symmetric_network=False, 
+                 use_half_network=False, fit_max_iter=1000):
         """SRM calibration class.
 
         Parameters
         ----------
-        symmetric (list[Network]): 2-port symmetric networks used as calibration standards
-        est_symmetric (list[Network]): 1-port estimates of the symmetric standards 
-        reciprocal (Network): 2-port reciprocal network used as calibration standard
-        est_reciprocal (Network): 2-port estimate of the reciprocal network
-        matchA (Network): 1-port match standard at port A
-        matchB (Network): 1-port match standard at port B
-        matchA_def (Network, optional): Match definition for port A. If not provided, assume zero (perfect match).
-        matchB_def (Network, optional): Match definition for port B.
-        reciprocal_GammaA (list[Network]): 1-port measurements at port A. Either port A or B provided or both.
-        reciprocal_GammaB (list[Network]): 1-port measurements at port B.
-        switch_term (list[Network], optional): Forward and reverse switch terms.
-        model_fit (list of dict, optional): Settings for match parasitic fitting. Defaults to None.
-        fit_max_iter (int, optional): Maximum number of iterations for the model fitting optimization.
-        use_half_network (bool, optional): Use half network procedure (see paper).
-        use_symmetric_network (bool, optional): Use symmetric network procedure. 
-        This will alow you to use at least 2 one-port standards instead of 3.
-        NOTE: don't use "use_symmetric_network", as it's not reliable. I just inlcuded it because why not?
+        symmetric : list[Network]
+            Measurement of one-port (as two-port) symmetric networks
+        est_symmetric : list[Network] 
+            One-port estimates of the symmetric standards
+        reciprocal : Network
+            Measurement of two-port reciprocal network
+        est_reciprocal : Network
+            Two-port estimate of the reciprocal network
+        matchA : Network
+            Measurement of one-port match standard at port A
+        matchB : Network
+            Measurement of one-port match standard at port B 
+        matchA_def : Network, optional
+            Match definition for port A. Defaults to zero (ideal match).
+        matchB_def : Network, optional
+            Match definition for port B. Defaults to zero (ideal match).
+        reciprocal_GammaA : list[Network]
+            Measurement of one-port measurements at port A.
+        reciprocal_GammaB : list[Network], optional
+            Measurement of one-port measurements at port B. Either port A or B measurements must be provided (or both).
+        switch_term : list[Network], optional
+            Forward and reverse switch terms. Defaults to None.
+        model_fit : list[dict], optional
+            Settings for match parasitic fitting. Defaults to None.
+        model_fit_split : bool, optional
+            Whether to fit the model parameters for ports A and B seperatly or coupled using same model paramters. Defaults to False.
+        use_half_network : bool, optional
+            Use half network procedure as described in the paper. Defaults to False.
+        use_symmetric_network : bool, optional
+            Use symmetric network procedure to allow calibration with only 2 one-port standards instead of 3.
+            Note: This option is experimental and not stable.
+        fit_max_iter : int, optional
+            Maximum iterations for model fitting optimization. Defaults to 1000.
         """
         self.f  = symmetric[0].frequency.f
         self.Ssymmetric  = np.array([x.s.squeeze() for x in symmetric])
@@ -290,6 +324,7 @@ class SRM:
             self.switch_term = np.array([self.f*0 for x in range(2)])
             
         self.model_fit = model_fit
+        self.model_fit_split = model_fit_split
         self.use_symmetric_network = use_symmetric_network  # allow at least 2 one-port networks if two-port network is symmetric
         self.use_half_network = use_half_network
         self.fit_max_iter = fit_max_iter
@@ -333,7 +368,6 @@ class SRM:
                                                matchA=matchA, matchB=matchB, matchA_def=matchA_def, matchB_def=matchB_def,
                                                use_symmetric_network=self.use_symmetric_network,
                                                use_half_network=self.use_half_network)
-
             A.append(A_)
             B.append(B_)
             k.append(k_)
@@ -359,13 +393,16 @@ class SRM:
                 meas_p2.append(item['meas'][1])
                 model.append(item['func'])
                 num_var.append(len(item['initialValues']))
-            num_var = np.array(num_var)
+            x0 = x0 + x0 if self.model_fit_split else x0
+            bounds = bounds + bounds if self.model_fit_split else bounds
+            num_var = np.array(num_var + num_var) if self.model_fit_split else np.array(num_var)
             meas_p1 = np.array(meas_p1)
             meas_p2 = np.array(meas_p2)
-            
+            num_meas = meas_p1.shape[0]
+
             save_sol = [] # save solution from each iteration
             save_iteration_results = lambda xk,convergence: save_sol.append(xk)
-            xx = scipy.optimize.differential_evolution(obj, bounds, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var),
+            xx = scipy.optimize.differential_evolution(obj, bounds, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var,self.model_fit_split),
                                                     disp=True, polish=True, maxiter=self.fit_max_iter, 
                                                     strategy='randtobest1bin', init='sobol',
                                                     popsize=10, mutation=(0.1,1.9), recombination=0.9, 
@@ -375,7 +412,7 @@ class SRM:
             '''
             # use gradient based optimization (can get you the wrong answer for large number of variables)
             save_iteration_results = lambda xk: save_x.append(xk)
-            xx = scipy.optimize.minimize(obj, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var), 
+            xx = scipy.optimize.minimize(obj, x0=x0, args=(f,Wa,Wb,meas_p1,meas_p2,model,num_var,self.model_fit_split), 
                                          method='Nelder-Mead', bounds=bounds, callback=save_iteration_results,
                                          options={'disp': True}, tol=1e-10)
             '''
@@ -386,18 +423,55 @@ class SRM:
             for x in save_sol:
                 model_para_all.append([ x[num_var[:inx].sum():num_var[:inx].sum()+y] for inx, y in enumerate(num_var) ])
             
-            self.model_eval  = np.array([m(f,x) for m,x in zip(model, model_para_final)])  # evaluate the model at the final solution
-            self.model_para = model_para_final
-            self.model_para_all = model_para_all
-            # solve for the error terms using the final solution for the match standard
-            A = [solve_box(w, m, r, True) for w,m,r in zip(Wa, meas_p1[0], self.model_eval[0])]     # first one is always assumed to be match standard
-            B = [solve_box(w, m, r, False) for w,m,r in zip(Wb, meas_p2[0], self.model_eval[0])]
-            k_est = k
-            k = []
-            for a,b,s,ke in zip(A,B,self.Sreciprocal,k_est):
-                k_ = np.sqrt(np.linalg.det(s2t(s))/np.linalg.det(a)/np.linalg.det(b))
-                k.append( k_ if abs(k_-ke) < abs(k_+ke) else -k_ )
+            if self.model_fit_split:
+                self.model_para_A = model_para_final[:num_meas]
+                self.model_para_all_A = [x[:num_meas] for x in model_para_all]
+                self.model_eval_A = np.array([m(f,x) for m,x in zip(model, self.model_para_A)])  # evaluate the model at the final solution
+                self.model_para_B = model_para_final[num_meas:]
+                self.model_para_all_B = [x[num_meas:] for x in model_para_all]
+                self.model_eval_B = np.array([m(f,x) for m,x in zip(model, self.model_para_B)])  # evaluate the model at the final solution
+            else:
+                self.model_para_A = model_para_final[:num_meas]
+                self.model_para_all_A = [x[:num_meas] for x in model_para_all]
+                self.model_eval_A = np.array([m(f,x) for m,x in zip(model, self.model_para_A)])  # evaluate the model at the final solution
+                self.model_para_B = self.model_para_A
+                self.model_para_all_B = self.model_para_all_A
+                self.model_eval_B = self.model_eval_A
 
+            # solve for the error terms using the final solution of the match model
+            A1 = [solve_box(w, m, r, True) for w,m,r in zip(Wa, meas_p1[0], self.model_eval_A[0])]     # first one is always assumed to be match standard
+            A2 = [solve_box(w@p, m, r, True) for w,m,r in zip(Wa, meas_p1[0], self.model_eval_A[0])]
+            
+            B1 = [solve_box(w, m, r, False) for w,m,r in zip(Wb, meas_p2[0], self.model_eval_B[0])]
+            B2 = [solve_box(w@p, m, r, False) for w,m,r in zip(Wb, meas_p2[0], self.model_eval_B[0])]
+            
+            k = []
+            A = []
+            B = []
+            for inx, (a1,b1,a2,b2) in enumerate(zip(A1,B1,A2,B2)):
+                GammaA = self.Ssymmetric[:,inx,0,0]
+                GammaB = self.Ssymmetric[:,inx,1,1]
+                est_symmetric = self.Sest_symmetric[:,inx]
+                reciprocal = self.Sreciprocal[inx,:,:]
+                est_reciprocal = self.Sest_reciprocal[inx,:,:]
+                
+                # port-A
+                err1 = abs( np.array([mobius(a1,est) - G for G,est in zip(GammaA, est_symmetric)]) ).sum()
+                err2 = abs( np.array([mobius(a2,est) - G for G,est in zip(GammaA, est_symmetric)]) ).sum()
+                A.append(a1 if err1 < err2 else a2)
+                
+                # port-B
+                err1 = abs( np.array([mobius_inv(p@b1@p,est) - G for G,est in zip(GammaB, est_symmetric)]) ).sum()
+                err2 = abs( np.array([mobius_inv(p@b2@p,est) - G for G,est in zip(GammaB, est_symmetric)]) ).sum()
+                B.append(b1 if err1 < err2 else b2)
+                
+                # solve for 7th error term
+                Mnet = s2t(reciprocal)
+                k_ = np.sqrt(np.linalg.det(Mnet)/np.linalg.det(A[inx])/np.linalg.det(B[inx]))
+                err1 = abs( k_*A[inx]@s2t(est_reciprocal)@B[inx] - Mnet ).sum()
+                err2 = abs( k_*A[inx]@s2t(est_reciprocal)@B[inx] + Mnet ).sum()
+                k.append( k_ if err1 < err2 else -k_ )
+                
         self.A  = np.array(A)
         self.B  = np.array(B)
         self.X  = np.array([np.kron(b.T, a) for a,b in zip(self.A, self.B)])
@@ -438,7 +512,7 @@ class SRM:
         S_cal = np.array(S_cal).squeeze()
         freq  = NW.frequency
         
-        # revert to 1-port device if the input was a 1-port device
+        # revert to 1-port device if the input is a 1-port device
         if nports < 2:
             if left: # left port
                 S_cal = S_cal[:,0,0]
