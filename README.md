@@ -134,13 +134,13 @@ _Comparison of SRM extracted match model against TRL measurement_
 
 ## Crediting
 
-If you use this method in your research or publications, please cite our main paper [1]. For use of the measurement data in your own publications, please reference dataset [2].
+If you use this method in your research or publications, please cite our main paper [1]. If you use the automatic model extraction procedure consider citing as well [2]. If you use the measurement data, consider citing this repository and stamp the date of data access.
 
 ## References
 
 [1] Z. Hatab, M. E. Gadringer and W. Bösch, "Symmetric-Reciprocal-Match Method for Vector Network Analyzer Calibration," in _IEEE Transactions on Instrumentation and Measurement_, vol. 73, pp. 1-11, 2024, Art no. 1001911, doi: [10.1109/TIM.2024.3350124](https://doi.org/10.1109/TIM.2024.3350124), e-print: <https://arxiv.org/abs/2309.02886>
 
-[2] Z. Hatab, "Symmetric-Reciprocal-Match Calibration: Dataset and Code". Graz University of Technology, Sep. 07, 2023. doi: [10.3217/z5zhh-5qh04](https://doi.org/10.3217/z5zhh-5qh04).
+[2] Z. Hatab, M. E. Gadringer, A. Arsanjani and W. Bösch, "Automatic Model Extraction of the Match Standard in Symmetric-Reciprocal-Match Calibration," arXiv e-print: <https://arxiv.org/abs/2509.18426>
 
 ## License
 
