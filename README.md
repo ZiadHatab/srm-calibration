@@ -96,7 +96,7 @@ _Comparison between calibrated verification kit using SRM and SOLR_
 
 This example showcases how the SRM method can be used for on-wafer applications. In the example, I provide two scenarios: one using a full-network and the other using a half-network. The latter case is illustrated below.
 
-![](./Images/cpw_example.png)
+![](./Images/cpw_example.jpg)
 _Illustration of CPW structures implementing the half-network approach of SRM calibration. The match standard is optional if the symmetric impedance standard is reused as the match standard._
 
 The simulation outcome is not surprising: it yields exact results, as indicated by the error vector graph of the calibrated DUT (step-impedance), which approaches zero and is limited only by numerical precision of the software.
@@ -114,10 +114,10 @@ Note that you always need at least one additional modeled standard (short or ope
 
 Below are comparisons between using an ideal match versus running the optimization, along with the relative error of the estimated parameters. See the example file for more details.
 
-![](./Images/numerical_simulation_DUT.jpg)
+![](./Images/numerical_simulation_DUT.png)
 _DUT S-parameters and its relative error_
 
-![](./Images/error_in_parameters.jpg)
+![](./Images/error_in_parameters.png)
 _Relative error of the extracted model parameters_
 
 ### Microstrip measurement with automatic model fitting
@@ -126,7 +126,7 @@ This example demonstrates SRM calibration using actual measurements of a microst
 
 The results below show measurements of a stepped-impedance line DUT. The comparison also includes the extracted match model against the calibrated response from multiline TRL. Pretty good agreement, I would say 😗
 
-![](./Images/ms_dut_srm_vs_trl.jpg)
+![](./Images/ms_dut_srm_vs_trl.png)
 _DUT S-parameters and its relative error_
 
 ![](./Images/ms_srm_match_fit_vs_trl.jpg)

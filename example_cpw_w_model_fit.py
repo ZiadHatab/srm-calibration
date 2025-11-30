@@ -377,15 +377,15 @@ if __name__=='__main__':
     DUT_cal_ideal_match = cal_ideal_match.apply_cal(DUT_embbed)
     DUT_cal_fitted_match = cal_fitted_match.apply_cal(DUT_embbed)
     
-    error_ideal_match = abs((DUT.s - DUT_cal_ideal_match.s)/DUT.s)
-    error_fitted_match = abs((DUT.s - DUT_cal_fitted_match.s)/DUT.s)
+    error_ideal_match = mag2db(DUT.s - DUT_cal_ideal_match.s)
+    error_fitted_match = mag2db(DUT.s - DUT_cal_fitted_match.s)
     
     with PlotSettings(14):
         fig, axs = plt.subplots(3,2, figsize=(10,8.5))        
         fig.set_dpi(600)
         fig.tight_layout(w_pad=2.5, h_pad=2.5)
         ax = axs[0,0]
-        ax.plot(f*1e-9, mag2db(DUT.s[:,0,0]), lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT', linestyle='-')
+        ax.plot(f*1e-9, mag2db(DUT.s[:,0,0]), lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT (reference)', linestyle='-')
         ax.plot(f*1e-9, mag2db(DUT_cal_ideal_match.s[:,0,0]), lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.')
         ax.plot(f*1e-9, mag2db(DUT_cal_fitted_match.s[:,0,0]), lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--')
         ax.set_xlabel('Frequency (GHz)')
@@ -396,7 +396,7 @@ if __name__=='__main__':
         ax.set_ylim(-40,0)
         
         ax = axs[0,1]
-        ax.plot(f*1e-9, mag2db(DUT.s[:,1,0]), lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT', linestyle='-')
+        ax.plot(f*1e-9, mag2db(DUT.s[:,1,0]), lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT (reference)', linestyle='-')
         ax.plot(f*1e-9, mag2db(DUT_cal_ideal_match.s[:,1,0]), lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.')
         ax.plot(f*1e-9, mag2db(DUT_cal_fitted_match.s[:,1,0]), lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--')
         ax.set_xlabel('Frequency (GHz)')
@@ -408,7 +408,7 @@ if __name__=='__main__':
         ax.legend(loc='lower left', ncol=1, fontsize=11)
         
         ax = axs[1,0]
-        ax.plot(f*1e-9, np.angle(DUT.s[:,0,0])/np.pi, lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT', linestyle='-')
+        ax.plot(f*1e-9, np.angle(DUT.s[:,0,0])/np.pi, lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT (reference)', linestyle='-')
         ax.plot(f*1e-9, np.angle(DUT_cal_ideal_match.s[:,0,0])/np.pi, lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.')
         ax.plot(f*1e-9, np.angle(DUT_cal_fitted_match.s[:,0,0])/np.pi, lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--')
         ax.set_xlabel('Frequency (GHz)')
@@ -419,7 +419,7 @@ if __name__=='__main__':
         ax.set_ylim(-1,1)
         
         ax = axs[1,1]
-        ax.plot(f*1e-9, np.angle(DUT.s[:,1,0])/np.pi, lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT', linestyle='-')
+        ax.plot(f*1e-9, np.angle(DUT.s[:,1,0])/np.pi, lw=2.5, marker='o', markevery=15, markersize=12, label='Actual DUT (reference)', linestyle='-')
         ax.plot(f*1e-9, np.angle(DUT_cal_ideal_match.s[:,1,0])/np.pi, lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.')
         ax.plot(f*1e-9, np.angle(DUT_cal_fitted_match.s[:,1,0])/np.pi, lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--')
         ax.set_xlabel('Frequency (GHz)')
@@ -430,25 +430,50 @@ if __name__=='__main__':
         ax.set_ylim(-1,1)
         
         ax = axs[2,0]
-        ax.semilogy(f*1e-9, error_ideal_match[:,0,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
-        ax.semilogy(f*1e-9, error_fitted_match[:,0,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
+        ax.plot(f*1e-9, error_ideal_match[:,0,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
+        ax.plot(f*1e-9, error_fitted_match[:,0,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('S11 Relative Error')
-        ax.set_yticks(np.logspace(-16, 2, 4))
-        ax.set_ylim(1e-16,1e2)
+        ax.set_ylabel('S11 error (dB)')
+        #ax.set_yticks(np.logspace(-16, 2, 4))
+        ax.set_ylim(-300,-0)
         #ax.legend(loc='lower right', ncol=1, fontsize=12)
+        # inset axes....
+        with PlotSettings(8):
+            axin = ax.inset_axes([0.5, 0.4, 0.4, 0.4])
+            axin.plot(f*1e-9, error_ideal_match[:,0,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
+            axin.plot(f*1e-9, error_fitted_match[:,0,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
+            axin.set_xlim((100, 150))
+            axin.set_xticks([100, 110, 120, 130, 140, 150])
+            axin.set_ylim((-30, 0))
+            axin.set_yticks([-30,-20,-10,0])
+            # axin.set_xticklabels('')
+            # axin.set_yticklabels('')
+            ax.indicate_inset_zoom(axin, edgecolor="black")
+        
         
         ax = axs[2,1]
-        ax.semilogy(f*1e-9, error_ideal_match[:,1,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
-        ax.semilogy(f*1e-9, error_fitted_match[:,1,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
+        ax.plot(f*1e-9, error_ideal_match[:,1,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
+        ax.plot(f*1e-9, error_fitted_match[:,1,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,150.1,30))
         ax.set_xlim(0,150)
-        ax.set_ylabel('S21 Relative Error')
-        ax.set_yticks(np.logspace(-16, 2, 4))
-        ax.set_ylim(1e-16,1e2)
+        ax.set_ylabel('S21 error (dB)')
+        #ax.set_yticks(np.logspace(-16, 2, 4))
+        ax.set_ylim(-300,0)
+        # inset axes....
+        with PlotSettings(8):
+            axin = ax.inset_axes([0.5, 0.4, 0.4, 0.4])
+            axin.plot(f*1e-9, error_ideal_match[:,1,0], lw=2, marker='X', markevery=20, markersize=12, label='SRM with ideal match', linestyle='-.', color='tab:orange')
+            axin.plot(f*1e-9, error_fitted_match[:,1,0], lw=2, marker='v', markevery=20, markersize=12, label='SRM with fitted match', linestyle='--', color='tab:green')
+            axin.set_xlim((100, 150))
+            axin.set_xticks([100, 110, 120, 130, 140, 150])
+            axin.set_ylim((-40, 0))
+            axin.set_yticks([-40,-30,-20,-10,0])
+            # axin.set_xticklabels('')
+            # axin.set_yticklabels('')
+            ax.indicate_inset_zoom(axin, edgecolor="black")
         #fig.savefig('numerical_simulation_DUT.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
     
     # error in the estimated parametetrs
@@ -483,7 +508,7 @@ if __name__=='__main__':
         ax.set_ylim(1e-16,1e2)
         ax.legend(loc='lower left', ncol=1, fontsize=12)
         ax.set_title('Match Standard') 
-        #fig.savefig('error_in_parameters.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
+        fig.savefig('error_in_parameters.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
         
         """
         This for when using all three standards in optimization
