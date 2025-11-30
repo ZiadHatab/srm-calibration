@@ -96,7 +96,7 @@ _Comparison between calibrated verification kit using SRM and SOLR_
 
 This example showcases how the SRM method can be used for on-wafer applications. In the example, I provide two scenarios: one using a full-network and the other using a half-network. The latter case is illustrated below.
 
-![](./Images/cpw_example.jpg)
+![](./Images/cpw_example.png)
 _Illustration of CPW structures implementing the half-network approach of SRM calibration. The match standard is optional if the symmetric impedance standard is reused as the match standard._
 
 The simulation outcome is not surprising: it yields exact results, as indicated by the error vector graph of the calibrated DUT (step-impedance), which approaches zero and is limited only by numerical precision of the software.
