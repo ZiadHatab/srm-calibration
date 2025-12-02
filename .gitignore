@@ -1,2 +1,3 @@
 **/__pycache__/
 **/_not_included/
+.gitignore

@@ -358,33 +358,48 @@ if __name__=='__main__':
 
     # error in the estimated parametetrs
     with PlotSettings(14):
-        fig, axs = plt.subplots(1,2, figsize=(10,3.2))        
+        fig = plt.figure(figsize=(10, 6.5))
+        gs = fig.add_gridspec(2, 2)
         fig.set_dpi(600)
-        fig.tight_layout(w_pad=3, h_pad=2.5)
-        ax = axs[0]
-        ax.plot(f*1e-9, mag2db(match_est.s[:,0,0]), lw=2, marker='o', markevery=20, markersize=12, label='Port-A match from TRL', linestyle='-')
-        ax.plot(f*1e-9, mag2db(match_est.s[:,1,1]), lw=2, marker='X', markevery=20, markersize=12, label='Port-B match from TRL', linestyle='-')
+        
+        ax = fig.add_subplot(gs[0, 0])
+        ax.plot(f*1e-9, mag2db(match_est.s[:,0,0]), lw=2, marker='o', markevery=20, markersize=12, label='Port-A TRL measurement', linestyle='-')
+        ax.plot(f*1e-9, mag2db(match_est.s[:,1,1]), lw=2, marker='X', markevery=20, markersize=12, label='Port-B TRL measurement', linestyle='-')
         ax.plot(f*1e-9, mag2db(cal_fitted_match.model_eval_A[0]), lw=2, marker='v', markevery=20, markersize=12, label='Port-A SRM model fit', linestyle='--')        
         ax.plot(f*1e-9, mag2db(cal_fitted_match.model_eval_B[0]), lw=2, marker='^', markevery=20, markersize=12, label='Port-B SRM model fit', linestyle='--')    
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,50.1,10))
         ax.set_xlim(0,50)
-        ax.set_ylabel('|S11| (dB)')
+        ax.set_ylabel('|Sxx| (dB)')
         ax.set_yticks(np.arange(-40,0.1,10))
         ax.set_ylim(-40,0)
         ax.legend(loc='lower right', ncol=1)
         
-        ax = axs[1]
-        ax.plot(f*1e-9, np.angle(match_est.s[:,0,0])/np.pi, lw=2, marker='o', markevery=20, markersize=12, label='Port-A match from TRL', linestyle='-')
-        ax.plot(f*1e-9, np.angle(match_est.s[:,1,1])/np.pi, lw=2, marker='X', markevery=20, markersize=12, label='Port-B match from TRL', linestyle='-')
+        ax = fig.add_subplot(gs[0, 1])
+        ax.plot(f*1e-9, np.angle(match_est.s[:,0,0])/np.pi, lw=2, marker='o', markevery=20, markersize=12, label='Port-A TRL measurement', linestyle='-')
+        ax.plot(f*1e-9, np.angle(match_est.s[:,1,1])/np.pi, lw=2, marker='X', markevery=20, markersize=12, label='Port-B TRL measurement', linestyle='-')
         ax.plot(f*1e-9, np.angle(cal_fitted_match.model_eval_A[0])/np.pi, lw=2, marker='v', markevery=20, markersize=12, label='Port-A SRM model fit', linestyle='--')
         ax.plot(f*1e-9, np.angle(cal_fitted_match.model_eval_B[0])/np.pi, lw=2, marker='^', markevery=20, markersize=12, label='Port-B SRM model fit', linestyle='--')        
         ax.set_xlabel('Frequency (GHz)')
         ax.set_xticks(np.arange(0,50.1,10))
         ax.set_xlim(0,50)
-        ax.set_ylabel(r'arg(S11) ($\times \pi$ rad)')
+        ax.set_ylabel(r'arg(Sxx) ($\times \pi$ rad)')
         ax.set_yticks(np.arange(-1,0.1,0.2))
         ax.set_ylim(-1,0)
+
+        ax = fig.add_subplot(gs[1, :])
+        error_A = mag2db(match_est.s[:,0,0] - cal_fitted_match.model_eval_A[0])
+        error_B = mag2db(match_est.s[:,1,1] - cal_fitted_match.model_eval_B[0])
+        ax.plot(f*1e-9, error_A, lw=2, marker='o', markevery=20, markersize=12, label='Port-A error', linestyle='-')
+        ax.plot(f*1e-9, error_B, lw=2, marker='X', markevery=20, markersize=12, label='Port-B error', linestyle='-')
+        ax.set_xlabel('Frequency (GHz)')
+        ax.set_xticks(np.arange(0,50.1,10))
+        ax.set_xlim(0,50)
+        ax.set_ylabel('Sxx error (dB)')
+        ax.set_ylim(-50, 0)
+        ax.legend(loc='lower right', ncol=1)
+
+        fig.tight_layout(w_pad=1, h_pad=1)
         #fig.savefig('match_fit_trl.pdf', format='pdf', dpi=300, bbox_inches='tight', pad_inches = 0)
 
     plt.show()
