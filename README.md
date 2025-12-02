@@ -117,7 +117,7 @@ Below are comparisons between using an ideal match versus running the optimizati
 ![](./Images/numerical_simulation_DUT.png)
 _DUT S-parameters and its relative error_
 
-![](./Images/error_in_parameters.png)
+![](./Images/error_in_parameters.jpg)
 _Relative error of the extracted model parameters_
 
 ### Microstrip measurement with automatic model fitting
@@ -129,7 +129,7 @@ The results below show measurements of a stepped-impedance line DUT. The compari
 ![](./Images/ms_dut_srm_vs_trl.png)
 _DUT S-parameters and its relative error_
 
-![](./Images/ms_srm_match_fit_vs_trl.jpg)
+![](./Images/ms_srm_match_fit_vs_trl.png)
 _Comparison of SRM extracted match model against TRL measurement_
 
 ## Crediting
